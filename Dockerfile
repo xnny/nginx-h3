@@ -1,8 +1,8 @@
 # https://hg.nginx.org/nginx-quic/fie/tip/src/core/nginx.h
-ARG NGINX_VERSION=1.23.1
+ARG NGINX_VERSION=1.23.3
 
 # https://hg.nginx.org/nginx-quic/shortlog/quic
-ARG NGINX_COMMIT=98e94553ae51
+ARG NGINX_COMMIT=91ad1abfb285
 
 # https://github.com/google/ngx_brotli
 ARG NGX_BROTLI_COMMIT=6e975bcb015f62e1f303054897783355e2a877dc
@@ -159,7 +159,7 @@ RUN \
 RUN \
   echo "Cloning and configuring njs ..." \
   && cd /usr/src \
-  && hg clone --rev ${NJS_COMMIT} https://hg.nginx.org/njs \
+  && hg clone --rev ${NJS_COMMIT} http://hg.nginx.org/njs \
   && cd /usr/src/njs \
   && ./configure \
   && make njs \
@@ -219,8 +219,8 @@ COPY --from=base /usr/sbin/njs /usr/sbin/njs
 
 # hadolint ignore=SC2046
 RUN \
-	addgroup -S nginx \
-	&& adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \
+	addgroup --gid 101 -S nginx \
+	&& adduser --uid 100 -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \
 	&& apk add --no-cache --virtual .nginx-rundeps tzdata $(cat /tmp/runDeps.txt) \
 	&& rm /tmp/runDeps.txt \
 	&& ln -s /usr/lib/nginx/modules /etc/nginx/modules \
@@ -247,4 +247,9 @@ EXPOSE 80 443
 
 STOPSIGNAL SIGTERM
 
+# prepare to switching to non-root - update file permissions
+RUN chown --verbose nginx:nginx \
+	/var/run/nginx.pid
+
+USER nginx
 CMD ["nginx", "-g", "daemon off;"]
