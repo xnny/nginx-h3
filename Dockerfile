@@ -219,8 +219,8 @@ COPY --from=base /usr/sbin/njs /usr/sbin/njs
 
 # hadolint ignore=SC2046
 RUN \
-	addgroup --gid 101 -S nginx \
-	&& adduser --uid 100 -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \
+	addgroup -S nginx \
+	&& adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \
 	&& apk add --no-cache --virtual .nginx-rundeps tzdata $(cat /tmp/runDeps.txt) \
 	&& rm /tmp/runDeps.txt \
 	&& ln -s /usr/lib/nginx/modules /etc/nginx/modules \
@@ -247,9 +247,4 @@ EXPOSE 80 443
 
 STOPSIGNAL SIGTERM
 
-# prepare to switching to non-root - update file permissions
-RUN chown --verbose nginx:nginx \
-	/var/run/nginx.pid
-
-USER nginx
 CMD ["nginx", "-g", "daemon off;"]
