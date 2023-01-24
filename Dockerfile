@@ -2,7 +2,9 @@ FROM nginx:1.23.3 AS build
 
 WORKDIR /src
 RUN apt-get update && apt-get -y upgrade && \
-    apt-get install -y git gcc make g++ cmake perl libunwind-dev golang && \
+    wget https://go.dev/dl/go1.19.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.19.linux-amd64.tar.gz && \
+    apt-get install -y git gcc make g++ cmake perl libunwind-dev && \
     git clone https://boringssl.googlesource.com/boringssl && \
     mkdir boringssl/build && \
     cd boringssl/build && \
