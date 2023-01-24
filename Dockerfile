@@ -1,4 +1,4 @@
-FROM nginx:1.23.3 AS build
+FROM nginx:1.21.1 AS build
 
 WORKDIR /src
 RUN apt-get update && apt-get -y upgrade && \
@@ -24,6 +24,6 @@ RUN apt-get install -y mercurial libperl-dev libpcre3-dev zlib1g-dev libxslt1-de
                    --with-cc-opt="-I/src/boringssl/include" --with-ld-opt="-L/src/boringssl/build/ssl -L/src/boringssl/build/crypto" && \
     make
 
-FROM nginx:1.23.3
+FROM nginx:1.21.1
 COPY --from=build /src/nginx-quic/objs/nginx /usr/sbin
 RUN /usr/sbin/nginx -V > /dev/stderr
