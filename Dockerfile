@@ -1,7 +1,7 @@
 FROM nginx AS build
 
 WORKDIR /src
-RUN apt-get update && apt-get install -y git gcc make autoconf libtool perl
+RUN apt-get update && apt-get -y upgrade && apt-get install -y apt-utils git gcc make autoconf libtool perl
 RUN git clone -b v3.6.1 https://github.com/libressl-portable/portable.git libressl && \
     cd libressl && \
     ./autogen.sh && \
