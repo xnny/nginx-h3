@@ -3,8 +3,9 @@ FROM nginx:1.23.3 AS build
 WORKDIR /src
 RUN apt-get update && apt-get -y upgrade && \
     apt-get install -y wget && \
-    wget https://go.dev/dl/go1.19.linux-amd64.tar.gz && \
-    tar -C /usr/local -xzf go1.19.linux-amd64.tar.gz && \
+    wget https://go.dev/dl/go1.19.5.linux-amd64.tar.gz && \
+    rm -rf /usr/local/go && tar -C /usr/local -xzf go1.19.5.linux-amd64.tar.gz && \
+    ln -s /usr/local/go/bin/go /usr/bin/go && \
     apt-get install -y git gcc make g++ cmake perl libunwind-dev && \
     git clone https://boringssl.googlesource.com/boringssl && \
     mkdir boringssl/build && \
