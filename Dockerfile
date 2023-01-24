@@ -1,29 +1,24 @@
-FROM nginx:1.21.1 AS build
+FROM nginx AS build
 
 WORKDIR /src
-RUN apt-get update && apt-get -y upgrade && \
-    apt-get install -y wget && \
-    wget https://go.dev/dl/go1.19.5.linux-amd64.tar.gz && \
-    rm -rf /usr/local/go && tar -C /usr/local -xzf go1.19.5.linux-amd64.tar.gz && \
-    ln -s /usr/local/go/bin/go /usr/bin/go && \
-    apt-get install -y git gcc make g++ cmake perl libunwind-dev && \
-    git clone https://boringssl.googlesource.com/boringssl && \
-    mkdir boringssl/build && \
-    cd boringssl/build && \
-    cmake .. && \
-    make
+RUN apt-get update && apt-get install -y git gcc make autoconf libtool perl
+RUN git clone -b v3.6.1 https://github.com/libressl-portable/portable.git libressl && \
+    cd libressl && \
+    ./autogen.sh && \
+    ./configure && \
+    make check && \
+    make install
 
-RUN apt-get install -y mercurial libperl-dev libpcre3-dev zlib1g-dev libxslt1-dev libgd-ocaml-dev libgeoip-dev && \
-    hg clone https://hg.nginx.org/nginx-quic   && \
-    hg clone https://hg.nginx.org/njs -r "0.7.9" && \
+RUN apt-get install -y mercurial libperl-dev libpcre3-dev zlib1g-dev libxslt1-dev libgd-ocaml-dev libgeoip-dev
+RUN hg clone -b quic https://hg.nginx.org/nginx-quic && \
     cd nginx-quic && \
-    hg update quic && \
     auto/configure `nginx -V 2>&1 | sed "s/ \-\-/ \\\ \n\t--/g" | grep "\-\-" | grep -ve opt= -e param= -e build=` \
-                   --build=nginx-quic --with-debug  \
-                   --with-http_v3_module --with-stream_quic_module \
-                   --with-cc-opt="-I/src/boringssl/include" --with-ld-opt="-L/src/boringssl/build/ssl -L/src/boringssl/build/crypto" && \
+      --with-http_v3_module --with-stream_quic_module \
+      --with-debug --build=nginx-quic \
+      --with-cc-opt="-I/src/libressl/build/include" --with-ld-opt="-L/src/libressl/build/lib" --with-ld-opt="-static" && \
     make
 
-FROM nginx:1.21.1
+FROM nginx
 COPY --from=build /src/nginx-quic/objs/nginx /usr/sbin
-RUN /usr/sbin/nginx -V > /dev/stderr
+RUN /usr/sbin/nginx
+EXPOSE 80 443 443/udp
