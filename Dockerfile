@@ -67,8 +67,7 @@ ARG CONFIG="\
 		--add-dynamic-module=/ngx_http_geoip2_module \
 	"
 
-FROM alpine:3.14 AS base
-LABEL maintainer="NGINX Docker Maintainers <docker-maint@nginx.com>"
+FROM alpine:3.17 AS base
 
 ARG NGINX_VERSION
 ARG NGINX_COMMIT
@@ -185,7 +184,7 @@ RUN \
 			| xargs -r apk info --installed \
 			| sort -u > /tmp/runDeps.txt
 
-FROM alpine:3.14
+FROM alpine:3.17
 ARG NGINX_VERSION
 ARG NGINX_COMMIT
 
