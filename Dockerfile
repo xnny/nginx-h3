@@ -67,7 +67,7 @@ ARG CONFIG="\
 		--add-dynamic-module=/ngx_http_geoip2_module \
 	"
 
-FROM alpine:3.16 AS base
+FROM alpine:3.17 AS base
 
 ARG NGINX_VERSION
 ARG NGINX_COMMIT
@@ -101,7 +101,7 @@ RUN \
 		zlib-dev \
 		linux-headers \
 		curl \
-		gnupg1 \
+		gnupg \
 		libxslt-dev \
 		gd-dev \
 		geoip-dev \
@@ -184,7 +184,7 @@ RUN \
 			| xargs -r apk info --installed \
 			| sort -u > /tmp/runDeps.txt
 
-FROM alpine:3.16
+FROM alpine:3.17
 ARG NGINX_VERSION
 ARG NGINX_COMMIT
 
