@@ -1,22 +1,10 @@
-# https://hg.nginx.org/nginx-quic/fie/tip/src/core/nginx.h
-ARG NGINX_VERSION=1.23.1
-
-# https://hg.nginx.org/nginx-quic/shortlog/quic
-ARG NGINX_COMMIT=3550b00d9dc8
-
-# https://github.com/google/ngx_brotli
-ARG NGX_BROTLI_COMMIT=9aec15e2aa6feea2113119ba06460af70ab3ea62
-
-# https://github.com/google/boringssl
-ARG BORINGSSL_COMMIT=8ce0e1c14e48109773f1e94e5f8b020aa1e24dc5
-
 # https://github.com/openresty/headers-more-nginx-module#installation
 # we want to have https://github.com/openresty/headers-more-nginx-module/commit/e536bc595d8b490dbc9cf5999ec48fca3f488632
 ARG HEADERS_MORE_VERSION=0.34
 
 # https://hg.nginx.org/nginx-quic/file/quic/README#l72
 ARG CONFIG="\
-		--build=quic-$NGINX_COMMIT-boringssl-$BORINGSSL_COMMIT \
+		--build=quic-boringssl \
 		--prefix=/etc/nginx \
 		--sbin-path=/usr/sbin/nginx \
 		--modules-path=/usr/lib/nginx/modules \
@@ -64,31 +52,16 @@ ARG CONFIG="\
 		--with-http_v3_module \
 		--add-module=/usr/src/ngx_brotli \
 		--add-module=/usr/src/headers-more-nginx-module-$HEADERS_MORE_VERSION \
-		--add-dynamic-module=/ngx_http_geoip2_module \
 	"
 
 FROM alpine:3.17 AS base
 
-ARG NGINX_VERSION
-ARG NGINX_COMMIT
-ARG NGX_BROTLI_COMMIT
 ARG HEADERS_MORE_VERSION
 ARG CONFIG
 
-# https://github.com/leev/ngx_http_geoip2_module/releases
-ARG GEOIP2_VERSION=3.4
-
-RUN \
-  apk add --no-cache --virtual .build-deps \
-    git \
-  # ngx_http_geoip2_module needs libmaxminddb-dev
-  && apk add --no-cache libmaxminddb-dev \
-  \
-  && git clone --depth 1 --branch ${GEOIP2_VERSION} https://github.com/leev/ngx_http_geoip2_module /ngx_http_geoip2_module \
-  && apk del .build-deps
-
 RUN \
 	apk add --no-cache --virtual .build-deps \
+        git \
 		gcc \
 		libc-dev \
 		make \
@@ -117,25 +90,23 @@ RUN \
 WORKDIR /usr/src/
 
 RUN \
-	echo "Cloning nginx $NGINX_VERSION (rev $NGINX_COMMIT from 'quic' branch) ..." \
-	&& hg clone -b quic --rev $NGINX_COMMIT https://hg.nginx.org/nginx-quic /usr/src/nginx-$NGINX_VERSION
+	echo "Cloning nginx from 'quic' branch ..." \
+	&& hg clone -b quic https://hg.nginx.org/nginx-quic /usr/src/nginx-quic
 
 RUN \
-	echo "Cloning brotli $NGX_BROTLI_COMMIT ..." \
+	echo "Cloning brotli ..." \
 	&& mkdir /usr/src/ngx_brotli \
 	&& cd /usr/src/ngx_brotli \
 	&& git init \
 	&& git remote add origin https://github.com/google/ngx_brotli.git \
-	&& git fetch --depth 1 origin $NGX_BROTLI_COMMIT \
+	&& git fetch --depth 1 origin master \
 	&& git checkout --recurse-submodules -q FETCH_HEAD \
 	&& git submodule update --init --depth 1
 
 RUN \
   echo "Cloning boringssl ..." \
   && cd /usr/src \
-  && git clone https://github.com/google/boringssl \
-  && cd boringssl \
-  && git checkout $BORINGSSL_COMMIT
+  && git clone https://github.com/google/boringssl
 
 RUN \
   echo "Building boringssl ..." \
@@ -153,7 +124,7 @@ RUN \
 
 RUN \
   echo "Building nginx ..." \
-	&& cd /usr/src/nginx-$NGINX_VERSION \
+	&& cd /usr/src/nginx-quic \
 	&& ./auto/configure $CONFIG \
       --with-cc-opt="-I../boringssl/include"   \
       --with-ld-opt="-L../boringssl/build/ssl  \
@@ -161,7 +132,7 @@ RUN \
 	&& make -j$(getconf _NPROCESSORS_ONLN)
 
 RUN \
-	cd /usr/src/nginx-$NGINX_VERSION \
+	cd /usr/src/nginx-quic \
 	&& make install \
 	&& rm -rf /etc/nginx/html/ \
 	&& mkdir /etc/nginx/conf.d/ \
@@ -185,11 +156,7 @@ RUN \
 			| sort -u > /tmp/runDeps.txt
 
 FROM alpine:3.17
-ARG NGINX_VERSION
-ARG NGINX_COMMIT
 
-ENV NGINX_VERSION $NGINX_VERSION
-ENV NGINX_COMMIT $NGINX_COMMIT
 ENV TZ=Asia/Shanghai
 
 COPY --from=base /tmp/runDeps.txt /tmp/runDeps.txt
